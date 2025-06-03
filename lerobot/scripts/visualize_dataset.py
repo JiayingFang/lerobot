@@ -283,6 +283,7 @@ def main():
     tolerance_s = kwargs.pop("tolerance_s")
 
     logging.info("Loading dataset")
+    root = Path("/juno/u/jyfang/lerobot/jyfang/wild_human_epic_v0")
     dataset = LeRobotDataset(repo_id, root=root, tolerance_s=tolerance_s)
 
     visualize_dataset(dataset, **vars(args))

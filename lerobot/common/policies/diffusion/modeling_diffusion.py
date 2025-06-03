@@ -188,6 +188,9 @@ class DiffusionModel(nn.Module):
                 global_cond_dim += self.rgb_encoder.feature_dim * num_images
         if self.config.env_state_feature:
             global_cond_dim += self.config.env_state_feature.shape[0]
+        
+        if self.config.use_language_feature is not None:
+            global_cond_dim += self.config.language_embedding_dim
 
         self.unet = DiffusionConditionalUnet1d(config, global_cond_dim=global_cond_dim * config.n_obs_steps)
 
@@ -270,6 +273,11 @@ class DiffusionModel(nn.Module):
 
         if self.config.env_state_feature:
             global_cond_feats.append(batch[OBS_ENV])
+        
+        # language (replicate across the time axis once per call)
+        if self.config.use_language_feature:
+            lang = batch["observation.language_embedding"]       
+            global_cond_feats.append(lang)
 
         # Concatenate features then flatten to (B, global_cond_dim).
         return torch.cat(global_cond_feats, dim=-1).flatten(start_dim=1)

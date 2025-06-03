@@ -108,6 +108,12 @@ class DiffusionConfig(PreTrainedConfig):
     horizon: int = 16
     n_action_steps: int = 8
 
+    # ─── Language-conditioning -------------------------------------------------
+    # Set `use_language_feature=True` and list the embedding’s length in
+    # `input_shapes["observation.language_embedding"]` to enable.
+    use_language_feature: bool = True
+    language_embedding_dim: int = 768            # DistilBERT hidden size
+
     normalization_mapping: dict[str, NormalizationMode] = field(
         default_factory=lambda: {
             "VISUAL": NormalizationMode.MEAN_STD,
