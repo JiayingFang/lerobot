@@ -114,6 +114,11 @@ class DiffusionConfig(PreTrainedConfig):
     use_language_feature: bool = True
     language_embedding_dim: int = 768            # DistilBERT hidden size
 
+    # ─── Goal-image-conditioning -------------------------------------------------
+    # Set `use_goal_image=True` to enable.
+    use_goal_image: bool = False
+    use_proprioception: bool = False
+
     normalization_mapping: dict[str, NormalizationMode] = field(
         default_factory=lambda: {
             "VISUAL": NormalizationMode.MEAN_STD,
@@ -129,7 +134,7 @@ class DiffusionConfig(PreTrainedConfig):
     # Architecture / modeling.
     # Vision backbone.
     vision_backbone: str = "resnet18"
-    crop_shape: tuple[int, int] | None = (84, 84)
+    crop_shape: tuple[int, int] | None = (128, 228)
     crop_is_random: bool = True
     pretrained_backbone_weights: str | None = None
     use_group_norm: bool = True

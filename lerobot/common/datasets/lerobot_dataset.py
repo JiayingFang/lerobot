@@ -731,7 +731,10 @@ class LeRobotDataset(torch.utils.data.Dataset):
             query_result = self._query_hf_dataset(query_indices)
             item = {**item, **padding}
             for key, val in query_result.items():
-                item[key] = val
+                if key == "action_trajectory":
+                    item[key] = val[0][:len(query_indices[key])*20].reshape(len(query_indices[key]), 20)
+                else:
+                    item[key] = val
 
         if len(self.meta.video_keys) > 0:
             current_ts = item["timestamp"].item()

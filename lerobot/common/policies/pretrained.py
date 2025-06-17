@@ -19,6 +19,7 @@ from typing import Type, TypeVar
 
 import packaging
 import safetensors
+import torch
 from huggingface_hub import hf_hub_download
 from huggingface_hub.constants import SAFETENSORS_SINGLE_FILE
 from huggingface_hub.errors import HfHubHTTPError
@@ -110,6 +111,7 @@ class PreTrainedPolicy(nn.Module, HubMixin, abc.ABC):
         if os.path.isdir(model_id):
             print("Loading weights from local directory")
             model_file = os.path.join(model_id, SAFETENSORS_SINGLE_FILE)
+            print('model_file', model_file)
             policy = cls._load_as_safetensor(instance, model_file, config.device, strict)
         else:
             try:
@@ -147,7 +149,24 @@ class PreTrainedPolicy(nn.Module, HubMixin, abc.ABC):
                 )
                 model.to(map_location)
         else:
+            # state_dict = safetensors.torch.load_file(model_file, device=map_location)
+
+            # # # Now modify the buffers
+            # # state_dict['normalize_targets.buffer_action.max'] = state_dict['normalize_targets.buffer_action.max'][:20]
+            # # state_dict['normalize_targets.buffer_action.min'] = state_dict['normalize_targets.buffer_action.min'][:20]
+            # # state_dict['unnormalize_outputs.buffer_action.max'] = state_dict['unnormalize_outputs.buffer_action.max'][:20]
+            # # state_dict['unnormalize_outputs.buffer_action.min'] = state_dict['unnormalize_outputs.buffer_action.min'][:20]
+            
+            # model.normalize_targets.buffer_action.register_parameter("max", nn.Parameter(torch.zeros(640).to(map_location)))
+            # model.normalize_targets.buffer_action.register_parameter("min", nn.Parameter(torch.zeros(640).to(map_location)))
+            # model.unnormalize_outputs.buffer_action.register_parameter("max", nn.Parameter(torch.zeros(640).to(map_location)))
+            # model.unnormalize_outputs.buffer_action.register_parameter("min", nn.Parameter(torch.zeros(640).to(map_location)))
+
+            # # safetensors.torch.load_model(model, model_file, strict=strict, device=map_location)
+            # model.load_state_dict(state_dict, strict=strict)
+            # model.to(map_location)
             safetensors.torch.load_model(model, model_file, strict=strict, device=map_location)
+
         return model
 
     # def generate_model_card(self, *args, **kwargs) -> ModelCard:
