@@ -731,6 +731,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
             query_result = self._query_hf_dataset(query_indices)
             item = {**item, **padding}
             for key, val in query_result.items():
+                # TODO: improve this once we have a better way to handle action_trajectory
                 if key == "action_trajectory":
                     item[key] = val[0][:len(query_indices[key])*20].reshape(len(query_indices[key]), 20)
                 else:

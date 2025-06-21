@@ -132,7 +132,8 @@ def visualize_dataset(
         raise ValueError(mode)
 
     spawn_local_viewer = mode == "local" and not save
-    rr.init(f"{repo_id}/episode_{episode_index}", spawn=spawn_local_viewer)
+    rr.init(f"{repo_id}/episode_{episode_index}")
+    rr.connect("0.0.0.0:9870")
 
     # Manually call python garbage collector after `rr.init` to avoid hanging in a blocking flush
     # when iterating on a dataloader with `num_workers` > 0
@@ -146,6 +147,7 @@ def visualize_dataset(
 
     for batch in tqdm.tqdm(dataloader, total=len(dataloader)):
         # iterate over the batch
+        print(len(batch['index']))
         for i in range(len(batch["index"])):
             rr.set_time_sequence("frame_index", batch["frame_index"][i].item())
             rr.set_time_seconds("timestamp", batch["timestamp"][i].item())

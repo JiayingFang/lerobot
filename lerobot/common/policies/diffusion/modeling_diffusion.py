@@ -475,12 +475,35 @@ class DiffusionRgbEncoder(nn.Module):
             self.do_crop = False
 
         # Set up backbone.
-        backbone_model = getattr(torchvision.models, config.vision_backbone)(
-            weights=config.pretrained_backbone_weights
-        )
+        if config.pretrained_backbone_weights and "snapshot" in config.pretrained_backbone_weights:
+            weights = torch.load(config.pretrained_backbone_weights, weights_only=True)['visual_encoder']
+            new_weights = {}
+            for key, value in weights.items():
+                if 'module.convnet' in key:
+                    new_weights[key.replace('module.convnet.', '')] = value
+            if "resnet" in config.vision_backbone:
+                backbone_model = getattr(torchvision.models, config.vision_backbone)(weights=None)
+            elif "vit" in config.vision_backbone:
+                import timm
+                backbone_model = timm.create_model('vit_base_patch16_224.mae')
+            backbone_model.load_state_dict(new_weights, strict=False)
+        else:
+            # Check if it's a timm model (e.g., vit_mae)
+            if "vit" in config.vision_backbone:
+                import timm
+                backbone_model = timm.create_model('vit_base_patch16_224.mae', pretrained=False)
+            else:
+                backbone_model = getattr(torchvision.models, config.vision_backbone)(
+                    weights=config.pretrained_backbone_weights
+                )
         # Note: This assumes that the layer4 feature map is children()[-3]
         # TODO(alexander-soare): Use a safer alternative.
-        self.backbone = nn.Sequential(*(list(backbone_model.children())[:-2]))
+        if "vit" in config.vision_backbone:
+            # For ViT models, we'll use the entire model as backbone
+            self.backbone = backbone_model
+        else:
+            # For CNN models, use the feature extractor (remove classifier)
+            self.backbone = nn.Sequential(*(list(backbone_model.children())[:-2]))
         if config.use_group_norm:
             if config.pretrained_backbone_weights:
                 raise ValueError(
@@ -502,11 +525,22 @@ class DiffusionRgbEncoder(nn.Module):
         images_shape = next(iter(config.image_features.values())).shape
         dummy_shape_h_w = config.crop_shape if config.crop_shape is not None else images_shape[1:]
         dummy_shape = (1, images_shape[0], *dummy_shape_h_w)
-        feature_map_shape = get_output_shape(self.backbone, dummy_shape)[1:]
+        
+        if "vit" in config.vision_backbone:
+            # For ViT models, get feature dimension from the model
+            with torch.no_grad():
+                dummy_input = torch.randn(dummy_shape)
+                features = backbone_model(dummy_input)
+                feature_dim = features.shape[-1]
+            self.pool = None  # No pooling needed for ViT
+        else:
+            # For CNN models, use SpatialSoftmax
+            feature_map_shape = get_output_shape(self.backbone, dummy_shape)[1:]
+            self.pool = SpatialSoftmax(feature_map_shape, num_kp=config.spatial_softmax_num_keypoints)
+            feature_dim = config.spatial_softmax_num_keypoints * 2
 
-        self.pool = SpatialSoftmax(feature_map_shape, num_kp=config.spatial_softmax_num_keypoints)
-        self.feature_dim = config.spatial_softmax_num_keypoints * 2
-        self.out = nn.Linear(config.spatial_softmax_num_keypoints * 2, self.feature_dim)
+        self.feature_dim = feature_dim
+        self.out = nn.Linear(feature_dim, self.feature_dim)
         self.relu = nn.ReLU()
 
     def forward(self, x: Tensor) -> Tensor:
@@ -523,8 +557,16 @@ class DiffusionRgbEncoder(nn.Module):
             else:
                 # Always use center crop for eval.
                 x = self.center_crop(x)
+        
         # Extract backbone feature.
-        x = torch.flatten(self.pool(self.backbone(x)), start_dim=1)
+        if "vit" in self.config.vision_backbone:
+            # For ViT models, backbone outputs 1D features directly
+            x = self.backbone(x)
+            # ViT outputs (B, feature_dim), so we don't need flattening
+        else:
+            # For CNN models, use SpatialSoftmax pooling
+            x = torch.flatten(self.pool(self.backbone(x)), start_dim=1)
+        
         # Final linear layer with non-linearity.
         x = self.relu(self.out(x))
         return x

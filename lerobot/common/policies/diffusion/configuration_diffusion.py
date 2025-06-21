@@ -111,7 +111,7 @@ class DiffusionConfig(PreTrainedConfig):
     # ─── Language-conditioning -------------------------------------------------
     # Set `use_language_feature=True` and list the embedding’s length in
     # `input_shapes["observation.language_embedding"]` to enable.
-    use_language_feature: bool = True
+    use_language_feature: bool = False
     language_embedding_dim: int = 768            # DistilBERT hidden size
 
     # ─── Goal-image-conditioning -------------------------------------------------
@@ -137,7 +137,7 @@ class DiffusionConfig(PreTrainedConfig):
     crop_shape: tuple[int, int] | None = (128, 228)
     crop_is_random: bool = True
     pretrained_backbone_weights: str | None = None
-    use_group_norm: bool = True
+    use_group_norm: bool = False
     spatial_softmax_num_keypoints: int = 32
     use_separate_rgb_encoder_per_camera: bool = False
     # Unet.

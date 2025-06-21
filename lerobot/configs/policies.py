@@ -124,6 +124,7 @@ class PreTrainedConfig(draccus.ChoiceRegistry, HubMixin, abc.ABC):
     def action_feature(self) -> PolicyFeature | None:
         for name, ft in self.output_features.items():
             if ft.type is FeatureType.ACTION:
+                # TODO: improve this once we have a better way to handle action_trajectory
                 if name == "action_trajectory":
                     ft.shape = (20,)
                 return ft

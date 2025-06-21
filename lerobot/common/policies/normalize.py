@@ -175,6 +175,7 @@ class Normalize(nn.Module):
                 assert not torch.isinf(min).any(), _no_stats_error_str("min")
                 assert not torch.isinf(max).any(), _no_stats_error_str("max")
                 # normalize to [0,1]
+                # TODO: improve this once we have a better way to handle action_trajectory
                 if key == "action_trajectory":
                     batch[key] = (batch[key] - min[:20]) / (max[:20] - min[:20] + 1e-8)
                 else:
@@ -251,6 +252,7 @@ class Unnormalize(nn.Module):
                 assert not torch.isinf(min).any(), _no_stats_error_str("min")
                 assert not torch.isinf(max).any(), _no_stats_error_str("max")
                 batch[key] = (batch[key] + 1) / 2
+                # TODO: improve this once we have a better way to handle action_trajectory
                 if key == "action_trajectory":
                     batch[key] = batch[key] * (max[:20] - min[:20]) + min[:20]
                 else:
